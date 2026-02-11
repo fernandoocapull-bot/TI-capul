@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cooperativa Agropecuaria de unai - Manutencao TI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+
+        .os-card {
+            transition: transform 0.2s;
+        }
+
+        .os-card:hover {
+            transform: translateY(-2px);
+        }
+
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            .print-only {
+                display: block !important;
+            }
+            body {
+                background-color: white;
+            }
+        }
+
+        .print-only {
+            display: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- Navegação -->
+    <nav class="bg-blue-700 text-white shadow-lg no-print">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fas fa-laptop-medical text-2xl"></i>
+                <span class="text-xl font-bold tracking-tight">COOPERATIVA AGROPECUARIA DE UNAI - Manutenção TI</span>
+            </div>
+            <button onclick="toggleModal('modal-os')" class="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-lg font-medium transition flex items-center">
+                <i class="fas fa-plus mr-2"></i> Nova OS
+            </button>
+        </div>
+    </nav>
+
+    <!-- Dashboard -->
+    <main class="container mx-auto px-4 py-8 no-print">
+        <!-- Indicadores -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-yellow-400">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-sm text-gray-500 uppercase font-bold">Aguardando</p>
+                        <h3 id="stat-pending" class="text-3xl font-bold">0</h3>
+                    </div>
+                    <i class="fas fa-clock text-yellow-400 text-3xl"></i>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-blue-400">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-sm text-gray-500 uppercase font-bold">Em Manutenção</p>
+                        <h3 id="stat-progress" class="text-3xl font-bold">0</h3>
+                    </div>
+                    <i class="fas fa-tools text-blue-400 text-3xl"></i>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-green-400">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-sm text-gray-500 uppercase font-bold">Finalizadas</p>
+                        <h3 id="stat-done" class="text-3xl font-bold">0</h3>
+                    </div>
+                    <i class="fas fa-check-circle text-green-400 text-3xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filtros e Busca -->
+        <div class="bg-white p-4 rounded-xl shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-center">
+            <div class="relative flex-1 w-full">
+                <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                <input type="text" id="searchInput" placeholder="Buscar por cliente ou equipamento..." 
+                    class="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+            <select id="filterStatus" class="border rounded-lg px-4 py-2 bg-white outline-none focus:ring-2 focus:ring-blue-500 w-full md:w-auto">
+                <option value="all">Todos os Status</option>
+                <option value="Aguardando">Aguardando</option>
+                <option value="Em Manutenção">Em Manutenção</option>
+                <option value="Finalizado">Finalizado</option>
+            </select>
+        </div>
+
+        <!-- Lista de OS -->
+        <div id="os-list" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- As OS aparecerão aqui via JS -->
+        </div>
+    </main>
+
+    <!-- Modal Nova OS -->
+    <div id="modal-os" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50 p-4 no-print">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b flex justify-between items-center sticky top-0 bg-white">
+                <h2 class="text-2xl font-bold text-gray-800">Nova Ordem de Serviço</h2>
+                <button onclick="toggleModal('modal-os')" class="text-gray-500 hover:text-red-500"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <form id="osForm" class="p-6 space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Cliente</label>
+                        <input type="text" name="cliente" required class="w-full p-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Telefone/WhatsApp</label>
+                        <input type="text" name="telefone" required class="w-full p-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Equipamento</label>
+                        <input type="text" name="equipamento" placeholder="Ex: Notebook Dell Inspiron" required class="w-full p-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Tipo de Serviço</label>
+                        <select name="tipo" class="w-full p-2 border rounded-lg">
+                            <option value="Balcão">Urgente</option>
+                            <option value="Visita">Visita Técnica</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Defeito Relatado / Solicitação</label>
+                    <textarea name="defeito" rows="3" required class="w-full p-2 border rounded-lg"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Observações Técnicas</label>
+                    <textarea name="obs" rows="2" class="w-full p-2 border rounded-lg" placeholder="Acessórios deixados, estado físico, etc."></textarea>
+                </div>
+                <div class="flex justify-end space-x-3 pt-4">
+                    <button type="button" onclick="toggleModal('modal-os')" class="px-6 py-2 border rounded-lg hover:bg-gray-50 transition">Cancelar</button>
+                    <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">Salvar OS</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Container para Impressão -->
+    <div id="print-area" class="print-only p-8 text-black">
+        <!-- Conteúdo gerado dinamicamente para impressão -->
+    </div>
+
+    <script>
+        let ordens = JSON.parse(localStorage.getItem('tech_os_db')) || [];
+
+        // Inicialização
+        function init() {
+            renderOS();
+            updateStats();
+        }
+
+        function toggleModal(id) {
+            const modal = document.getElementById(id);
+            modal.classList.toggle('hidden');
+        }
+
+        // Adicionar Nova OS
+        document.getElementById('osForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const novaOS = {
+                id: Date.now(),
+                data: new Date().toLocaleDateString('pt-BR'),
+                hora: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                cliente: formData.get('cliente'),
+                telefone: formData.get('telefone'),
+                equipamento: formData.get('equipamento'),
+                tipo: formData.get('tipo'),
+                defeito: formData.get('defeito'),
+                obs: formData.get('obs'),
+                status: 'Aguardando',
+                historico: []
+            };
+
+            ordens.unshift(novaOS);
+            saveData();
+            this.reset();
+            toggleModal('modal-os');
+            renderOS();
+            updateStats();
+        });
+
+        function saveData() {
+            localStorage.setItem('tech_os_db', JSON.stringify(ordens));
+        }
+
+        function updateStats() {
+            document.getElementById('stat-pending').innerText = ordens.filter(o => o.status === 'Aguardando').length;
+            document.getElementById('stat-progress').innerText = ordens.filter(o => o.status === 'Em Manutenção').length;
+            document.getElementById('stat-done').innerText = ordens.filter(o => o.status === 'Finalizado').length;
+        }
+
+        function changeStatus(id, newStatus) {
+            const index = ordens.findIndex(o => o.id === id);
+            if (index !== -1) {
+                ordens[index].status = newStatus;
+                saveData();
+                renderOS();
+                updateStats();
+            }
+        }
+
+        function deleteOS(id) {
+            if (confirm('Deseja realmente excluir esta Ordem de Serviço?')) {
+                ordens = ordens.filter(o => o.id !== id);
+                saveData();
+                renderOS();
+                updateStats();
+            }
+        }
+
+        function printOS(id) {
+            const os = ordens.find(o => o.id === id);
+            const printArea = document.getElementById('print-area');
+            
+            printArea.innerHTML = `
+                <div class="border-2 border-black p-6">
+                    <div class="flex justify-between items-start mb-6 border-b-2 border-black pb-4">
+                        <div>
+                            <h1 class="text-3xl font-bold">COMPROVANTE DE OS #${os.id.toString().slice(-6)}</h1>
+                            <p class="text-lg">TechService Assistência Técnica</p>
+                        </div>
+                        <div class="text-right">
+                            <p><strong>Data:</strong> ${os.data} - ${os.hora}</p>
+                            <p><strong>Tipo:</strong> ${os.tipo}</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-8 mb-6">
+                        <div>
+                            <h3 class="font-bold border-b mb-2">DADOS DO CLIENTE</h3>
+                            <p><strong>Nome:</strong> ${os.cliente}</p>
+                            <p><strong>Telefone:</strong> ${os.telefone}</p>
+                        </div>
+                        <div>
+                            <h3 class="font-bold border-b mb-2">EQUIPAMENTO</h3>
+                            <p>${os.equipamento}</p>
+                        </div>
+                    </div>
+
+                    <div class="mb-6">
+                        <h3 class="font-bold border-b mb-2">DEFEITO / SERVIÇO</h3>
+                        <p class="bg-gray-100 p-3 min-h-[100px]">${os.defeito}</p>
+                    </div>
+
+                    <div class="mb-8">
+                        <h3 class="font-bold border-b mb-2">OBSERVAÇÕES</h3>
+                        <p>${os.obs || 'Nenhuma observação extra.'}</p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-12 mt-20 text-center">
+                        <div class="border-t border-black pt-2">
+                            Assinatura do Técnico
+                        </div>
+                        <div class="border-t border-black pt-2">
+                            Assinatura do Cliente
+                        </div>
+                    </div>
+                </div>
+            `;
+            window.print();
+        }
+
+        function renderOS() {
+            const list = document.getElementById('os-list');
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const filter = document.getElementById('filterStatus').value;
+
+            list.innerHTML = '';
+
+            const filtered = ordens.filter(os => {
+                const matchSearch = os.cliente.toLowerCase().includes(search) || os.equipamento.toLowerCase().includes(search);
+                const matchFilter = filter === 'all' || os.status === filter;
+                return matchSearch && matchFilter;
+            });
+
+            if (filtered.length === 0) {
+                list.innerHTML = `<div class="col-span-full text-center py-12 text-gray-500">Nenhuma ordem de serviço encontrada.</div>`;
+                return;
+            }
+
+            filtered.forEach(os => {
+                const statusClasses = {
+                    'Aguardando': 'bg-yellow-100 text-yellow-800',
+                    'Em Manutenção': 'bg-blue-100 text-blue-800',
+                    'Finalizado': 'bg-green-100 text-green-800'
+                };
+
+                const card = document.createElement('div');
+                card.className = 'os-card bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100';
+                card.innerHTML = `
+                    <div class="p-5">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">#${os.id.toString().slice(-6)}</span>
+                                <h4 class="text-lg font-bold text-gray-800">${os.cliente}</h4>
+                                <p class="text-sm text-gray-500"><i class="fas fa-desktop mr-1"></i> ${os.equipamento}</p>
+                            </div>
+                            <span class="px-3 py-1 rounded-full text-xs font-bold ${statusClasses[os.status]}">
+                                ${os.status}
+                            </span>
+                        </div>
+                        
+                        <div class="text-sm text-gray-600 mb-4 bg-gray-50 p-3 rounded-lg italic">
+                            "${os.defeito.substring(0, 100)}${os.defeito.length > 100 ? '...' : ''}"
+                        </div>
+
+                        <div class="flex flex-wrap items-center justify-between gap-3 pt-4 border-t">
+                            <div class="flex space-x-2">
+                                <button onclick="printOS(${os.id})" class="text-gray-600 hover:text-blue-600 p-2 rounded-lg hover:bg-blue-50 transition" title="Imprimir">
+                                    <i class="fas fa-print"></i>
+                                </button>
+                                <button onclick="deleteOS(${os.id})" class="text-gray-600 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition" title="Excluir">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="flex items-center space-x-2">
+                                <select onchange="changeStatus(${os.id}, this.value)" class="text-xs border rounded px-2 py-1 outline-none bg-white cursor-pointer">
+                                    <option value="Aguardando" ${os.status === 'Aguardando' ? 'selected' : ''}>Aguardando</option>
+                                    <option value="Em Manutenção" ${os.status === 'Em Manutenção' ? 'selected' : ''}>Em Manutenção</option>
+                                    <option value="Finalizado" ${os.status === 'Finalizado' ? 'selected' : ''}>Finalizado</option>
+                                </select>
+                                <span class="text-[10px] text-gray-400 font-medium">${os.data} às ${os.hora}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        // Event Listeners para Filtros
+        document.getElementById('searchInput').addEventListener('input', renderOS);
+        document.getElementById('filterStatus').addEventListener('change', renderOS);
+
+        window.onload = init;
+    </script>
+</body>
+</html>
